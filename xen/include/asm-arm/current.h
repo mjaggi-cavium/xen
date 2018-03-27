@@ -21,7 +21,14 @@ DECLARE_PER_CPU(struct vcpu *, curr_vcpu);
 struct cpu_info {
     struct cpu_user_regs guest_cpu_user_regs;
     unsigned long elr;
-    unsigned int pad;
+/*
+ * Flag is used to skip leave_hypervisor_tail when enter_hypervisor_head
+ * is not invoked. enter_hypervisor_head andleave_hypervisor_tail are
+ * invoked in sync, if one is not called other one should be skipped,
+ * otherwise guest vGIC state be out-of-date.
+ */
+    bool skip_hyp_tail:1;
+    unsigned int pad:31;
 };
 
 static inline struct cpu_info *get_cpu_info(void)

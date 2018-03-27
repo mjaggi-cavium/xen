@@ -2044,6 +2044,27 @@ void do_trap_guest_sync(struct cpu_user_regs *regs)
 {
     const union hsr hsr = { .bits = regs->hsr };
 
+    if ( check_workaround_cavium_30115() )
+    {
+        if ( vgic_v3_handle_cpuif_access(regs) )
+        {
+	        /*
+            * if true, g0/g1 vgic register trap is emulated for errata
+	         * so rest of handling of do_trap_guest_sync is not required.
+	         */
+            advance_pc(regs, hsr);
+            /*
+             * enter_hypervisor_head is not invoked when workaround 30115
+             * is in place. enter_hypervisor_head and leave_hypervisor_tail
+             * are invoked in sync, if one is not called other one should be
+             * skipped, otherwise guest vGIC state be out-of-date.
+             */
+            get_cpu_info()->skip_hyp_tail = true;
+
+            return;
+        }
+    }
+
     enter_hypervisor_head(regs);
 
     switch (hsr.ec) {
@@ -2242,6 +2263,16 @@ void do_trap_fiq(struct cpu_user_regs *regs)
 
 void leave_hypervisor_tail(void)
 {
+    /*
+     * if skip_hyp_tail is set simply retrun;
+     */
+    if ( unlikely(get_cpu_info()->skip_hyp_tail) )
+    {
+        /* clear it, so that it is false when not handling g0/g1 traps */
+        get_cpu_info()->skip_hyp_tail = false;
+        return;
+    }
+
     while (1)
     {
         local_irq_disable();
