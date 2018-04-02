@@ -3,6 +3,8 @@
 
 void inject_undef64_exception(struct cpu_user_regs *regs, int instr_len);
 
+bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs);
+
 void do_sysreg(struct cpu_user_regs *regs,
                const union hsr hsr);
 
