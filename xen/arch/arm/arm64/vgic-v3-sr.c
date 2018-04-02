@@ -39,6 +39,89 @@ static void vgic_v3_write_vmcr(uint32_t vmcr)
     WRITE_SYSREG32(vmcr, ICH_VMCR_EL2);
 }
 
+static uint64_t gicv3_ich_read_lr(int lr)
+{
+    switch ( lr )
+    {
+    case 0: return READ_SYSREG(ICH_LR0_EL2);
+    case 1: return READ_SYSREG(ICH_LR1_EL2);
+    case 2: return READ_SYSREG(ICH_LR2_EL2);
+    case 3: return READ_SYSREG(ICH_LR3_EL2);
+    case 4: return READ_SYSREG(ICH_LR4_EL2);
+    case 5: return READ_SYSREG(ICH_LR5_EL2);
+    case 6: return READ_SYSREG(ICH_LR6_EL2);
+    case 7: return READ_SYSREG(ICH_LR7_EL2);
+    case 8: return READ_SYSREG(ICH_LR8_EL2);
+    case 9: return READ_SYSREG(ICH_LR9_EL2);
+    case 10: return READ_SYSREG(ICH_LR10_EL2);
+    case 11: return READ_SYSREG(ICH_LR11_EL2);
+    case 12: return READ_SYSREG(ICH_LR12_EL2);
+    case 13: return READ_SYSREG(ICH_LR13_EL2);
+    case 14: return READ_SYSREG(ICH_LR14_EL2);
+    case 15: return READ_SYSREG(ICH_LR15_EL2);
+    default:
+        unreachable();
+    }
+}
+
+static void gicv3_ich_write_lr(int lr, uint64_t val)
+{
+    switch ( lr )
+    {
+    case 0:
+        WRITE_SYSREG(val, ICH_LR0_EL2);
+        break;
+    case 1:
+        WRITE_SYSREG(val, ICH_LR1_EL2);
+        break;
+    case 2:
+        WRITE_SYSREG(val, ICH_LR2_EL2);
+        break;
+    case 3:
+        WRITE_SYSREG(val, ICH_LR3_EL2);
+        break;
+    case 4:
+        WRITE_SYSREG(val, ICH_LR4_EL2);
+        break;
+    case 5:
+        WRITE_SYSREG(val, ICH_LR5_EL2);
+        break;
+    case 6:
+        WRITE_SYSREG(val, ICH_LR6_EL2);
+        break;
+    case 7:
+        WRITE_SYSREG(val, ICH_LR7_EL2);
+        break;
+    case 8:
+        WRITE_SYSREG(val, ICH_LR8_EL2);
+        break;
+    case 9:
+        WRITE_SYSREG(val, ICH_LR9_EL2);
+        break;
+    case 10:
+        WRITE_SYSREG(val, ICH_LR10_EL2);
+        break;
+    case 11:
+        WRITE_SYSREG(val, ICH_LR11_EL2);
+        break;
+    case 12:
+        WRITE_SYSREG(val, ICH_LR12_EL2);
+        break;
+    case 13:
+        WRITE_SYSREG(val, ICH_LR13_EL2);
+        break;
+    case 14:
+        WRITE_SYSREG(val, ICH_LR14_EL2);
+        break;
+    case 15:
+        WRITE_SYSREG(val, ICH_LR15_EL2);
+        break;
+    default:
+        return;
+    }
+    isb();
+}
+
 static void vgic_v3_write_ap0rn(uint32_t val, int n)
 {
     switch (n)
