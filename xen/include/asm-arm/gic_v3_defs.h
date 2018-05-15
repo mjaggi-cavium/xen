@@ -164,6 +164,12 @@
 #define ICH_VMCR_VENG1               (1 << 1)
 #define ICH_VMCR_PRIORITY_MASK       0xff
 #define ICH_VMCR_PRIORITY_SHIFT      24
+#define ICH_VMCR_CBPR_SHIFT          4
+#define ICH_VMCR_CBPR_MASK           (1 << ICH_VMCR_CBPR_SHIFT)
+#define ICH_VMCR_BPR0_SHIFT          21
+#define ICH_VMCR_BPR0_MASK           (7 << ICH_VMCR_BPR0_SHIFT)
+#define ICH_VMCR_BPR1_SHIFT          18
+#define ICH_VMCR_BPR1_MASK           (7 << ICH_VMCR_BPR1_SHIFT)
 
 #define ICH_LR_VIRTUAL_MASK          0xffff
 #define ICH_LR_VIRTUAL_SHIFT         0
