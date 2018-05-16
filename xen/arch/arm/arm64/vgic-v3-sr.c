@@ -279,6 +279,33 @@ static void vgic_v3_write_bpr1(struct cpu_user_regs *regs, uint32_t vmcr,
     vgic_v3_write_vmcr(vmcr);
 }
 
+static void vgic_v3_read_bpr0(struct cpu_user_regs *regs, uint32_t vmcr,
+                              int rt)
+{
+    set_user_reg(regs, rt, vgic_v3_get_bpr0(vmcr));
+}
+
+static void vgic_v3_write_bpr0(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    register_t val = get_user_reg(regs, rt);
+    uint8_t bpr_min = vgic_v3_bpr_min();
+
+    if ( vmcr & ICH_VMCR_CBPR_MASK )
+        return;
+
+    /* Enforce BPR limiting */
+    if ( val < bpr_min )
+        val = bpr_min;
+
+    val <<= ICH_VMCR_BPR0_SHIFT;
+    val &= ICH_VMCR_BPR0_MASK;
+    vmcr &= ~ICH_VMCR_BPR0_MASK;
+    vmcr |= val;
+
+    vgic_v3_write_vmcr(vmcr);
+}
+
 static void vgic_v3_read_igrpen1(struct cpu_user_regs *regs, uint32_t vmcr,
                                  int rt)
 {
@@ -645,6 +672,13 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
 
     switch ( sysreg )
     {
+
+    case HSR_SYSREG_ICC_BPR0_EL1:
+        if ( is_read )
+            fn = vgic_v3_read_bpr0;
+        else
+            fn = vgic_v3_write_bpr0;
+        break;
 
     case HSR_SYSREG_ICC_BPR1_EL1:
         if ( is_read )
