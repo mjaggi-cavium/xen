@@ -170,6 +170,8 @@
 #define ICH_VMCR_BPR0_MASK           (7 << ICH_VMCR_BPR0_SHIFT)
 #define ICH_VMCR_BPR1_SHIFT          18
 #define ICH_VMCR_BPR1_MASK           (7 << ICH_VMCR_BPR1_SHIFT)
+#define ICH_VMCR_ENG1_SHIFT          1
+#define ICH_VMCR_ENG1_MASK           (1 << ICH_VMCR_ENG1_SHIFT)
 
 #define ICH_LR_VIRTUAL_MASK          0xffff
 #define ICH_LR_VIRTUAL_SHIFT         0

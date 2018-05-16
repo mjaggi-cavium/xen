@@ -93,6 +93,25 @@ static void vgic_v3_write_bpr1(struct cpu_user_regs *regs, uint32_t vmcr,
     vgic_v3_write_vmcr(vmcr);
 }
 
+static void vgic_v3_read_igrpen1(struct cpu_user_regs *regs, uint32_t vmcr,
+                                 int rt)
+{
+    set_user_reg(regs, rt, !!(vmcr & ICH_VMCR_ENG1_MASK));
+}
+
+static void vgic_v3_write_igrpen1(struct cpu_user_regs *regs, uint32_t vmcr,
+                                  int rt)
+{
+    register_t val = get_user_reg(regs, rt);
+
+    if ( val & 1 )
+        vmcr |= ICH_VMCR_ENG1_MASK;
+    else
+        vmcr &= ~ICH_VMCR_ENG1_MASK;
+
+    vgic_v3_write_vmcr(vmcr);
+}
+
 /* vgic_v3_handle_cpuif_access
  * returns: true if the register is emulated
  *          false if not a sysreg
@@ -125,6 +144,13 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_read_bpr1;
         else
             fn = vgic_v3_write_bpr1;
+        break;
+
+    case HSR_SYSREG_ICC_IGRPEN1_EL1:
+        if ( is_read )
+            fn = vgic_v3_read_igrpen1;
+        else
+            fn = vgic_v3_write_igrpen1;
         break;
 
     default:
