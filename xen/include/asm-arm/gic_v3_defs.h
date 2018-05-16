@@ -69,6 +69,7 @@
  */
 #define GICV3_GICD_IIDR_VAL          0x34c
 #define GICV3_GICR_IIDR_VAL          GICV3_GICD_IIDR_VAL
+#define GICV3_IDLE_PRIORITY          0xff
 
 /* Two pages for the RD_base and SGI_base register frame. */
 #define GICV3_GICR_SIZE              (2 * SZ_64K)
@@ -172,6 +173,10 @@
 #define ICH_VMCR_BPR1_MASK           (7 << ICH_VMCR_BPR1_SHIFT)
 #define ICH_VMCR_ENG1_SHIFT          1
 #define ICH_VMCR_ENG1_MASK           (1 << ICH_VMCR_ENG1_SHIFT)
+#define ICH_VMCR_ENG0_SHIFT          0
+#define ICH_VMCR_ENG0_MASK           (1 << ICH_VMCR_ENG0_SHIFT)
+#define ICH_VMCR_PMR_SHIFT           24
+#define ICH_VMCR_PMR_MASK            (0xffUL << ICH_VMCR_PMR_SHIFT)
 
 #define ICH_LR_VIRTUAL_MASK          0xffff
 #define ICH_LR_VIRTUAL_SHIFT         0
@@ -192,6 +197,14 @@
 #define ICH_LR_MAINTENANCE_IRQ       (1UL<<41)
 #define ICH_LR_GRP1                  (1UL<<60)
 #define ICH_LR_HW                    (1UL<<61)
+#define ICH_LR_EOI                   (1ULL << 41)
+#define ICH_LR_GROUP                 (1ULL << 60)
+#define ICH_LR_STATE                 (3ULL << 62)
+#define ICH_LR_PENDING_BIT           (1ULL << 62)
+#define ICH_LR_ACTIVE_BIT            (1ULL << 63)
+#define ICH_LR_PHYS_ID_SHIFT         32
+#define ICH_LR_PHYS_ID_MASK          (0x3ffULL << ICH_LR_PHYS_ID_SHIFT)
+#define ICH_LR_VIRTUAL_ID_MASK       ((1ULL << 32) - 1)
 
 #define ICH_VTR_NRLRGS               0x3f
 #define ICH_VTR_PRIBITS_MASK         0x7

@@ -84,6 +84,7 @@
 
 #define GICH_HCR        (0x00)
 #define GICH_VTR        (0x04)
+#define GICH_VTR_NRLRGS  0x3f
 #define GICH_VMCR       (0x08)
 #define GICH_MISR       (0x10)
 #define GICH_EISR0      (0x20)

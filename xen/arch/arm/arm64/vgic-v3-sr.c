@@ -25,8 +25,17 @@
 #include <asm/regs.h>
 #include <asm/system.h>
 #include <asm/traps.h>
+#include <xen/sched.h>
+#include <asm/vtimer.h>
 
 #define vtr_to_nr_pre_bits(v)     ((((uint32_t)(v) >> 26) & 7) + 1)
+#define vtr_to_nr_apr_regs(v)     (1 << (vtr_to_nr_pre_bits(v) - 5))
+
+#define ESR_ELx_SYS64_ISS_CRM_SHIFT 1
+#define ESR_ELx_SYS64_ISS_CRM_MASK (0xf << ESR_ELx_SYS64_ISS_CRM_SHIFT)
+
+#define ICC_IAR1_EL1_SPURIOUS    0x3ff
+#define VGIC_MAX_SPI             1019
 
 /* Provide wrappers to read write VMCR similar to linux */
 static uint64_t vgic_v3_read_vmcr(void)
@@ -288,6 +297,180 @@ static void vgic_v3_write_igrpen1(struct cpu_user_regs *regs, uint32_t vmcr,
     vgic_v3_write_vmcr(vmcr);
 }
 
+static int vgic_v3_get_group(const union hsr hsr)
+{
+    uint8_t crm = (hsr.bits & ESR_ELx_SYS64_ISS_CRM_MASK) >>
+                   ESR_ELx_SYS64_ISS_CRM_SHIFT;
+
+    return crm != 8;
+}
+
+static unsigned int gic_get_num_lrs(void)
+{
+    uint32_t vtr;
+
+    vtr = READ_SYSREG32(ICH_VTR_EL2);
+    return (vtr & GICH_VTR_NRLRGS) + 1;
+}
+
+static int vgic_v3_highest_priority_lr(struct cpu_user_regs *regs,
+                                       uint32_t vmcr, uint64_t *lr_val)
+{
+    unsigned int i, lr = -1;
+    unsigned int used_lrs =  gic_get_num_lrs();
+    uint8_t priority = GICV3_IDLE_PRIORITY;
+
+    for ( i = 0; i < used_lrs; i++ )
+    {
+        uint64_t val =  gicv3_ich_read_lr(i);
+        uint8_t lr_prio = (val & ICH_LR_PRIORITY_MASK) >> ICH_LR_PRIORITY_SHIFT;
+
+        /* Not pending in the state? */
+        if ( (val & ICH_LR_STATE) != ICH_LR_PENDING_BIT )
+            continue;
+
+        /* Group-0 interrupt, but Group-0 disabled? */
+        if ( !(val & ICH_LR_GROUP) && !(vmcr & ICH_VMCR_ENG0_MASK) )
+            continue;
+
+        /* Group-1 interrupt, but Group-1 disabled? */
+        if ( (val & ICH_LR_GROUP) && !(vmcr & ICH_VMCR_ENG1_MASK) )
+            continue;
+
+        /* Not the highest priority? */
+        if ( lr_prio >= priority )
+            continue;
+
+        /* This is a candidate */
+        priority = lr_prio;
+        *lr_val = val;
+        lr = i;
+    }
+
+    if ( lr == -1 )
+        *lr_val = ICC_IAR1_EL1_SPURIOUS;
+
+    return lr;
+}
+
+static int vgic_v3_get_highest_active_priority(void)
+{
+    unsigned int i;
+    uint32_t hap = 0;
+    uint8_t nr_apr_regs = vtr_to_nr_apr_regs(READ_SYSREG32(ICH_VTR_EL2));
+
+    for ( i = 0; i < nr_apr_regs; i++ )
+    {
+        uint32_t val;
+
+        /*
+         * The ICH_AP0Rn_EL2 and ICH_AP1Rn_EL2 registers
+         * contain the active priority levels for this VCPU
+         * for the maximum number of supported priority
+         * levels, and we return the full priority level only
+         * if the BPR is programmed to its minimum, otherwise
+         * we return a combination of the priority level and
+         * subpriority, as determined by the setting of the
+         * BPR, but without the full subpriority.
+         */
+        val  = vgic_v3_read_ap0rn(i);
+        val |= vgic_v3_read_ap1rn(i);
+        if ( !val )
+        {
+            hap += 32;
+            continue;
+        }
+
+        return (hap +  __ffs(val)) << vgic_v3_bpr_min();
+    }
+
+    return GICV3_IDLE_PRIORITY;
+}
+
+/*
+ * Convert a priority to a preemption level, taking the relevant BPR
+ * into account by zeroing the sub-priority bits.
+ */
+static uint8_t vgic_v3_pri_to_pre(uint8_t pri, uint32_t vmcr, int grp)
+{
+    unsigned int bpr;
+
+    if ( !grp )
+        bpr = vgic_v3_get_bpr0(vmcr) + 1;
+    else
+        bpr = vgic_v3_get_bpr1(vmcr);
+
+    return pri & (GENMASK(7, 0) << bpr);
+}
+
+/*
+ * The priority value is independent of any of the BPR values, so we
+ * normalize it using the minumal BPR value. This guarantees that no
+ * matter what the guest does with its BPR, we can always set/get the
+ * same value of a priority.
+ */
+static void vgic_v3_set_active_priority(uint8_t pri, uint32_t vmcr, int grp)
+{
+    uint8_t pre, ap;
+    uint32_t val;
+    int apr;
+
+    pre = vgic_v3_pri_to_pre(pri, vmcr, grp);
+    ap = pre >> vgic_v3_bpr_min();
+    apr = ap / 32;
+
+    if ( !grp )
+    {
+        val = vgic_v3_read_ap0rn(apr);
+        vgic_v3_write_ap0rn(val | BIT(ap % 32), apr);
+    }
+    else
+    {
+        val = vgic_v3_read_ap1rn(apr);
+        vgic_v3_write_ap1rn(val | BIT(ap % 32), apr);
+    }
+}
+
+static void vgic_v3_read_iar(struct cpu_user_regs *regs, uint32_t vmcr, int rt)
+{
+    uint64_t lr_val;
+    uint8_t lr_prio, pmr;
+    int lr, grp;
+    const union hsr hsr = { .bits = regs->hsr };
+
+    grp = vgic_v3_get_group(hsr);
+
+    lr = vgic_v3_highest_priority_lr(regs, vmcr, &lr_val);
+    if ( lr < 0 )
+        goto spurious;
+
+    if ( grp != !!(lr_val & ICH_LR_GROUP) )
+        goto spurious;
+
+    pmr = (vmcr & ICH_VMCR_PMR_MASK) >> ICH_VMCR_PMR_SHIFT;
+    lr_prio = (lr_val & ICH_LR_PRIORITY_MASK) >> ICH_LR_PRIORITY_SHIFT;
+    if ( pmr <= lr_prio )
+        goto spurious;
+
+    if ( vgic_v3_get_highest_active_priority() <=
+         vgic_v3_pri_to_pre(lr_prio, vmcr, grp) )
+        goto spurious;
+
+    lr_val &= ~ICH_LR_STATE;
+    /* No active state for LPIs */
+    if ( (lr_val & ICH_LR_VIRTUAL_ID_MASK) <= VGIC_MAX_SPI )
+        lr_val |= ICH_LR_ACTIVE_BIT;
+
+    gicv3_ich_write_lr(lr, lr_val);
+    vgic_v3_set_active_priority(lr_prio, vmcr, grp);
+    set_user_reg(regs, rt,  lr_val & ICH_LR_VIRTUAL_ID_MASK);
+
+    return;
+
+spurious:
+     set_user_reg(regs, rt, ICC_IAR1_EL1_SPURIOUS);
+}
+
 /* vgic_v3_handle_cpuif_access
  * returns: true if the register is emulated
  *          false if not a sysreg
@@ -327,6 +510,10 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_read_igrpen1;
         else
             fn = vgic_v3_write_igrpen1;
+        break;
+
+    case HSR_SYSREG_ICC_IAR1_EL1:
+        fn = vgic_v3_read_iar;
         break;
 
     default:
