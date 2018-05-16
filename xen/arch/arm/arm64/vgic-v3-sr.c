@@ -646,6 +646,25 @@ spurious:
     set_user_reg(regs, rt, lr_val & ICH_LR_VIRTUAL_ID_MASK);
 }
 
+static void vgic_v3_read_igrpen0(struct cpu_user_regs *regs, uint32_t vmcr,
+                                 int rt)
+{
+    set_user_reg(regs, rt, !!(vmcr & ICH_VMCR_ENG0_MASK));
+}
+
+static void vgic_v3_write_igrpen0(struct cpu_user_regs *regs, uint32_t vmcr,
+                                  int rt)
+{
+    register_t val = get_user_reg(regs, rt);
+
+    if ( val & 1 )
+        vmcr |= ICH_VMCR_ENG0_MASK;
+    else
+        vmcr &= ~ICH_VMCR_ENG0_MASK;
+
+    WRITE_SYSREG32(vmcr, ICH_VMCR_EL2);
+}
+
 /* vgic_v3_handle_cpuif_access
  * returns: true if the register is emulated
  *          false if not a sysreg
@@ -704,6 +723,13 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
 
     case HSR_SYSREG_ICC_HPPIR1_EL1:
         fn = vgic_v3_read_hppir;
+        break;
+
+    case HSR_SYSREG_ICC_IGRPEN0_EL1:
+        if (is_read)
+            fn = vgic_v3_read_igrpen0;
+        else
+            fn = vgic_v3_write_igrpen0;
         break;
 
     default:
