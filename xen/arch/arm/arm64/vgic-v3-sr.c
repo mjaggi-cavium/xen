@@ -598,6 +598,27 @@ static void vgic_v3_write_eoir(struct cpu_user_regs *regs, uint32_t vmcr,
     vgic_v3_clear_active_lr(lr, lr_val);
 }
 
+static void vgic_v3_read_hppir(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    uint64_t lr_val;
+    int lr, lr_grp, grp;
+    const union hsr hsr = { .bits = regs->hsr };
+
+    grp = vgic_v3_get_group(hsr);
+    lr = vgic_v3_highest_priority_lr(regs, vmcr, &lr_val);
+
+    if ( lr == -1 )
+        goto spurious;
+
+    lr_grp = !!(lr_val & ICH_LR_GROUP);
+    if ( lr_grp != grp )
+        lr_val = ICC_IAR1_EL1_SPURIOUS;
+
+spurious:
+    set_user_reg(regs, rt, lr_val & ICH_LR_VIRTUAL_ID_MASK);
+}
+
 /* vgic_v3_handle_cpuif_access
  * returns: true if the register is emulated
  *          false if not a sysreg
@@ -645,6 +666,10 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
 
     case HSR_SYSREG_ICC_EOIR1_EL1:
         fn = vgic_v3_write_eoir;
+        break;
+
+    case HSR_SYSREG_ICC_HPPIR1_EL1:
+        fn = vgic_v3_read_hppir;
         break;
 
     default:
