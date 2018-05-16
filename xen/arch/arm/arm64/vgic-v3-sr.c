@@ -39,6 +39,99 @@ static void vgic_v3_write_vmcr(uint32_t vmcr)
     WRITE_SYSREG32(vmcr, ICH_VMCR_EL2);
 }
 
+static void vgic_v3_write_ap0rn(uint32_t val, int n)
+{
+    switch (n)
+    {
+    case 0:
+        WRITE_SYSREG32(val, ICH_AP0R0_EL2);
+        break;
+    case 1:
+        WRITE_SYSREG32(val, ICH_AP0R1_EL2);
+        break;
+    case 2:
+        WRITE_SYSREG32(val, ICH_AP0R2_EL2);
+        break;
+    case 3:
+        WRITE_SYSREG32(val, ICH_AP0R3_EL2);
+        break;
+    default:
+        unreachable();
+    }
+}
+
+static void vgic_v3_write_ap1rn(uint32_t val, int n)
+{
+    switch (n)
+    {
+    case 0:
+        WRITE_SYSREG32(val, ICH_AP1R0_EL2);
+        break;
+    case 1:
+        WRITE_SYSREG32(val, ICH_AP1R1_EL2);
+        break;
+    case 2:
+        WRITE_SYSREG32(val, ICH_AP1R2_EL2);
+        break;
+    case 3:
+        WRITE_SYSREG32(val, ICH_AP1R3_EL2);
+        break;
+    default:
+        unreachable();
+    }
+}
+
+static uint32_t vgic_v3_read_ap0rn(int n)
+{
+    uint32_t val;
+
+    switch (n)
+    {
+    case 0:
+        val = READ_SYSREG32(ICH_AP0R0_EL2);
+        break;
+    case 1:
+        val = READ_SYSREG32(ICH_AP0R1_EL2);
+        break;
+    case 2:
+        val = READ_SYSREG32(ICH_AP0R2_EL2);
+        break;
+    case 3:
+        val = READ_SYSREG32(ICH_AP0R3_EL2);
+        break;
+    default:
+        unreachable();
+    }
+
+    return val;
+}
+
+static uint32_t vgic_v3_read_ap1rn(int n)
+{
+    uint32_t val;
+
+    switch (n)
+    {
+    case 0:
+        val = READ_SYSREG32(ICH_AP1R0_EL2);
+        break;
+    case 1:
+        val = READ_SYSREG32(ICH_AP1R1_EL2);
+        break;
+    case 2:
+        val = READ_SYSREG32(ICH_AP1R2_EL2);
+        break;
+    case 3:
+        val = READ_SYSREG32(ICH_AP1R3_EL2);
+        break;
+    default:
+        unreachable();
+    }
+
+    return val;
+}
+
+
 static int vgic_v3_bpr_min(void)
 {
     /* See Pseudocode for VPriorityGroup */
