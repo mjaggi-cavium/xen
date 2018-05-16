@@ -177,6 +177,10 @@
 #define ICH_VMCR_ENG0_MASK           (1 << ICH_VMCR_ENG0_SHIFT)
 #define ICH_VMCR_PMR_SHIFT           24
 #define ICH_VMCR_PMR_MASK            (0xffUL << ICH_VMCR_PMR_SHIFT)
+#define ICH_VMCR_EOIM_SHIFT          9
+#define ICH_VMCR_EOIM_MASK           (1 << ICH_VMCR_EOIM_SHIFT)
+#define ICH_HCR_EOIcount_SHIFT       27
+#define ICH_HCR_EOIcount_MASK        (0x1f << ICH_HCR_EOIcount_SHIFT)
 
 #define ICH_LR_VIRTUAL_MASK          0xffff
 #define ICH_LR_VIRTUAL_SHIFT         0
