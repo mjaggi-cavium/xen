@@ -785,14 +785,17 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_write_igrpen1;
         break;
 
+    case HSR_SYSREG_ICC_IAR0_EL1:
     case HSR_SYSREG_ICC_IAR1_EL1:
         fn = vgic_v3_read_iar;
         break;
 
+    case HSR_SYSREG_ICC_EOIR0_EL1:
     case HSR_SYSREG_ICC_EOIR1_EL1:
         fn = vgic_v3_write_eoir;
         break;
 
+    case HSR_SYSREG_ICC_HPPIR0_EL1:
     case HSR_SYSREG_ICC_HPPIR1_EL1:
         fn = vgic_v3_read_hppir;
         break;
@@ -804,6 +807,7 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_write_igrpen0;
         break;
 
+    case HSR_SYSREG_ICC_AP0Rn_EL1(0):
     case HSR_SYSREG_ICC_AP1Rn_EL1(0):
         if (is_read)
             fn = vgic_v3_read_apxr0;
@@ -811,6 +815,7 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_write_apxr0;
         break;
 
+    case HSR_SYSREG_ICC_AP0Rn_EL1(1):
     case HSR_SYSREG_ICC_AP1Rn_EL1(1):
         if (is_read)
             fn = vgic_v3_read_apxr1;
@@ -818,6 +823,7 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_write_apxr1;
         break;
 
+    case HSR_SYSREG_ICC_AP0Rn_EL1(2):
     case HSR_SYSREG_ICC_AP1Rn_EL1(2):
         if (is_read)
             fn = vgic_v3_read_apxr2;
@@ -825,6 +831,7 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_write_apxr2;
         break;
 
+    case HSR_SYSREG_ICC_AP0Rn_EL1(3):
     case HSR_SYSREG_ICC_AP1Rn_EL1(3):
         if (is_read)
             fn = vgic_v3_read_apxr3;
