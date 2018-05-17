@@ -665,6 +665,78 @@ static void vgic_v3_write_igrpen0(struct cpu_user_regs *regs, uint32_t vmcr,
     WRITE_SYSREG32(vmcr, ICH_VMCR_EL2);
 }
 
+static void vgic_v3_read_apxrn(struct cpu_user_regs *regs, int rt, int n)
+{
+    uint32_t val;
+    const union hsr hsr = { .bits = regs->hsr };
+
+    if ( !vgic_v3_get_group(hsr) )
+        val = vgic_v3_read_ap0rn(n);
+    else
+        val = vgic_v3_read_ap1rn(n);
+
+    set_user_reg(regs, rt, val);
+}
+
+static void vgic_v3_write_apxrn(struct cpu_user_regs *regs, int rt, int n)
+{
+    u32 val = get_user_reg(regs, rt);
+    const union hsr hsr = { .bits = regs->hsr };
+
+    if ( !vgic_v3_get_group(hsr) )
+        vgic_v3_write_ap0rn(val, n);
+    else
+        vgic_v3_write_ap1rn(val, n);
+}
+
+static void vgic_v3_read_apxr0(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    vgic_v3_read_apxrn(regs, rt, 0);
+}
+
+static void vgic_v3_read_apxr1(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    vgic_v3_read_apxrn(regs, rt, 1);
+}
+
+static void vgic_v3_read_apxr2(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    vgic_v3_read_apxrn(regs, rt, 2);
+}
+
+static void vgic_v3_read_apxr3(struct cpu_user_regs *regs, uint32_t vmcr,
+                               int rt)
+{
+    vgic_v3_read_apxrn(regs, rt, 3);
+}
+
+static void vgic_v3_write_apxr0(struct cpu_user_regs *regs, uint32_t vmcr,
+                                int rt)
+{
+    vgic_v3_write_apxrn(regs, rt, 0);
+}
+
+static void vgic_v3_write_apxr1(struct cpu_user_regs *regs, uint32_t vmcr,
+                                int rt)
+{
+    vgic_v3_write_apxrn(regs, rt, 1);
+}
+
+static void vgic_v3_write_apxr2(struct cpu_user_regs *regs, uint32_t vmcr,
+                                int rt)
+{
+    vgic_v3_write_apxrn(regs, rt, 2);
+}
+
+static void vgic_v3_write_apxr3(struct cpu_user_regs *regs, uint32_t vmcr,
+                                int rt)
+{
+    vgic_v3_write_apxrn(regs, rt, 3);
+}
+
 /* vgic_v3_handle_cpuif_access
  * returns: true if the register is emulated
  *          false if not a sysreg
@@ -730,6 +802,34 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
             fn = vgic_v3_read_igrpen0;
         else
             fn = vgic_v3_write_igrpen0;
+        break;
+
+    case HSR_SYSREG_ICC_AP1Rn_EL1(0):
+        if (is_read)
+            fn = vgic_v3_read_apxr0;
+        else
+            fn = vgic_v3_write_apxr0;
+        break;
+
+    case HSR_SYSREG_ICC_AP1Rn_EL1(1):
+        if (is_read)
+            fn = vgic_v3_read_apxr1;
+        else
+            fn = vgic_v3_write_apxr1;
+        break;
+
+    case HSR_SYSREG_ICC_AP1Rn_EL1(2):
+        if (is_read)
+            fn = vgic_v3_read_apxr2;
+        else
+            fn = vgic_v3_write_apxr2;
+        break;
+
+    case HSR_SYSREG_ICC_AP1Rn_EL1(3):
+        if (is_read)
+            fn = vgic_v3_read_apxr3;
+        else
+            fn = vgic_v3_write_apxr3;
         break;
 
     default:
