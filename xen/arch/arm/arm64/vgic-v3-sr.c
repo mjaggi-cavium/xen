@@ -787,6 +787,11 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
 
     case HSR_SYSREG_ICC_IAR0_EL1:
     case HSR_SYSREG_ICC_IAR1_EL1:
+        if ( unlikely(!is_read) )
+        {
+            ret = false;
+            goto end;
+        }
         fn = vgic_v3_read_iar;
         break;
 
@@ -797,6 +802,11 @@ bool vgic_v3_handle_cpuif_access(struct cpu_user_regs *regs)
 
     case HSR_SYSREG_ICC_HPPIR0_EL1:
     case HSR_SYSREG_ICC_HPPIR1_EL1:
+        if ( unlikely(!is_read) )
+        {
+            ret = false;
+            goto end;
+        }
         fn = vgic_v3_read_hppir;
         break;
 
