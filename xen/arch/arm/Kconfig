@@ -185,6 +185,17 @@ config ARM64_ERRATUM_834220
 
 	  If unsure, say Y.
 
+config CAVIUM_ERRATUM_30115
+	bool "Cavium Erratum 30115"
+	depends on HAS_GICV3
+	help
+	  On ThunderX T88 pass 1.x through 2.2, T81 pass 1.0 through
+	  1.2, and T83 Pass 1.0, guest execution may disable
+	  interrupts in host. Trapping both GICv3 group-0 and group-1
+	  accesses sidesteps the issue.
+
+	  If unsure, say Y.
+
 endmenu
 
 config HARDEN_BRANCH_PREDICTOR
